@@ -19,15 +19,20 @@ namespace BrainFuck_Interpreter
 
             public cell(cell p,int position)
             {
-                value = 0;
-                pos = position;
-                prev = p;
+                this.value = 0;
+                this.pos = position;
+                this.prev = p;
+                this.next = null;
+            }
+            public string CellValue()
+            {
+                return Convert.ToString((char)this.value);
             }
 
             override
             public string ToString()
             {
-                return Convert.ToChar(value).ToString();
+                return "Cell[" + Convert.ToString(this.pos) + "] = " + Convert.ToString(this.value);
             }
         }
 
@@ -39,7 +44,7 @@ namespace BrainFuck_Interpreter
 
         public void ShiftLeft()
         {
-           if (CurrentCell.prev != null) CurrentCell = CurrentCell.prev; ;
+           if (CurrentCell.prev != null) CurrentCell = CurrentCell.prev;
         }
 
         public void Increase()
@@ -54,25 +59,30 @@ namespace BrainFuck_Interpreter
 
         public void PrintCellValue()
         {
-            Console.Write(CurrentCell.ToString());
+            Console.Write(CurrentCell.CellValue());
         }
 
         public int GetValue()
         {
             return CurrentCell.value;
         }
+
+        public void printCellInfo()
+        {
+            Console.WriteLine(CurrentCell.ToString());
+        }
     }
 
     class Constants
     {
-        public const string ShiftLeft   = ">";
-        public const string ShiftRight  = "<";
-        public const string Output      = ".";
-        public const string Input       = ",";
-        public const string BeginLoop   = "[";
-        public const string EndLoop     = "]";
-        public const string Add         = "+";
-        public const string Subtract    = "-";
+        public const char ShiftLeft   = '<';
+        public const char ShiftRight  = '>';
+        public const char Output      = '.';
+        public const char Input       = ',';
+        public const char BeginLoop   = '[';
+        public const char EndLoop     = ']';
+        public const char Increase    = '+';
+        public const char Subtract    = '-';
     }
     
     class Program
@@ -88,12 +98,31 @@ namespace BrainFuck_Interpreter
             CellArray Main = new CellArray();
 
             try
-            {   // Open the text file using a stream reader.
+            {   
                 using (StreamReader sr = new StreamReader(args[0]))
                 {
                     // Read the stream to a string, and write the string to the console.
-                    String line = sr.ReadToEnd();
-                    Console.WriteLine(line);
+                    string line = sr.ReadToEnd();
+                    foreach(char c in line)
+                    {
+                        switch (c)
+                        {
+                            case Constants.ShiftLeft:
+                                Main.ShiftLeft();
+                                break;
+                            case Constants.ShiftRight:
+                                Main.ShiftRight();
+                                break;
+                            case Constants.Output:
+                                Main.PrintCellValue();
+                                break;
+                            case Constants.Increase:
+                                Main.Increase();
+                                break;
+                            default:
+                                break;
+                        }
+                    }
                 }
             }
             catch (Exception e)
