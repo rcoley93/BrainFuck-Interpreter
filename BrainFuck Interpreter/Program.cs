@@ -19,20 +19,26 @@ namespace BrainFuck_Interpreter
 
             public cell(cell p,int position)
             {
-                this.value = 0;
-                this.pos = position;
-                this.prev = p;
-                this.next = null;
+                value = 0;
+                pos = position;
+                prev = p;
+                next = null;
             }
+
             public string CellValue()
             {
-                return Convert.ToString((char)this.value);
+                return Convert.ToString((char)value);
+            }
+
+            public void setValue(int v)
+            {
+                value = v;
             }
 
             override
             public string ToString()
             {
-                return "Cell[" + Convert.ToString(this.pos) + "] = " + Convert.ToString(this.value);
+                return "Cell[" + Convert.ToString(pos) + "] = " + Convert.ToString(value);
             }
         }
 
@@ -71,22 +77,36 @@ namespace BrainFuck_Interpreter
         {
             Console.WriteLine(CurrentCell.ToString());
         }
+
+        public void CellInput(int v)
+        {
+            CurrentCell.setValue(v);
+        }
+
+        public int getPos()
+        {
+            return CurrentCell.pos;
+        }
     }
 
     class Constants
     {
-        public const char ShiftLeft   = '<';
-        public const char ShiftRight  = '>';
-        public const char Output      = '.';
-        public const char Input       = ',';
-        public const char BeginLoop   = '[';
-        public const char EndLoop     = ']';
-        public const char Increase    = '+';
-        public const char Subtract    = '-';
+        public const string ShiftLeft   = "<";
+        public const string ShiftRight  = ">";
+        public const string Output      = ".";
+        public const string Input       = ",";
+        public const string BeginLoop   = "[";
+        public const string EndLoop     = "]";
+        public const string Increase    = "+";
+        public const string Decrease    = "-";
+        public const int    NoPosChange = -1 ;
     }
     
     class Program
     {
+        static CellArray MainArray = new CellArray();
+        
+
         static void Main(string[] args)
         {
             if (args.Length != 1)
@@ -94,42 +114,89 @@ namespace BrainFuck_Interpreter
                 Console.WriteLine("USAGE: BFI.exe input_file");
                 return;
             }
+                      try
 
-            CellArray Main = new CellArray();
-
-            try
-            {   
-                using (StreamReader sr = new StreamReader(args[0]))
-                {
-                    // Read the stream to a string, and write the string to the console.
-                    string line = sr.ReadToEnd();
+            {
+                // Read the stream to a string, and write the string to the console.
+                string line = File.ReadAllText(args[0]);
+                    int StartLoopCount = 0, EndLoopCount = 0;
                     foreach(char c in line)
                     {
-                        switch (c)
-                        {
-                            case Constants.ShiftLeft:
-                                Main.ShiftLeft();
-                                break;
-                            case Constants.ShiftRight:
-                                Main.ShiftRight();
-                                break;
-                            case Constants.Output:
-                                Main.PrintCellValue();
-                                break;
-                            case Constants.Increase:
-                                Main.Increase();
-                                break;
-                            default:
-                                break;
-                        }
+                        if (c.Equals(Constants.BeginLoop)) StartLoopCount++;
+                        else if (c.Equals(Constants.EndLoop)) EndLoopCount++;
                     }
-                }
+
+                    if(StartLoopCount!= EndLoopCount)
+                    {
+                        Console.WriteLine("Error: Loop ([ or ]) count doesn't match up!");
+                        return;
+                    }
+
+                    string[] charArray = line.Split();
+                    
+                    for(int i = 0;i<charArray.Length;i++)
+                    {
+                        string s = charArray[i];
+                        i = ProcessCommand(s,line,i);            
+                    }
             }
             catch (Exception e)
             {
-                Console.WriteLine("The file could not be read:");
+                Console.Write("The file could not be read: ");
                 Console.WriteLine(e.Message);
             }
+        }
+
+        static int ProcessCommand(string s,string line,int pos)
+        {
+           // Console.WriteLine("Process Command[{1}]: {0}" , s ,pos);
+            switch (s)
+            {
+                case Constants.ShiftLeft:
+                    MainArray.ShiftLeft();
+                    break;
+                case Constants.ShiftRight:
+                    MainArray.ShiftRight();
+                    break;
+                case Constants.Output:
+                    MainArray.PrintCellValue();
+                    break;
+                case Constants.Increase:
+                    MainArray.Increase();
+                    break;
+                case Constants.Decrease:
+                    MainArray.Decrease();
+                    break;
+                case Constants.Input:
+                    MainArray.CellInput((int)Console.ReadKey().KeyChar);
+                    break;
+                case Constants.BeginLoop:
+                    return ProcessLoop(pos, line);
+                default:
+                    break;
+            }
+            return pos;
+        }
+
+        static int ProcessLoop(int pos,string line)
+        {
+            string[] charArray = line.Split();
+            int endLoopPos = pos, BeginLoopCount = 1, EndLoopCount = 0;
+            while (BeginLoopCount != EndLoopCount)
+            {
+                endLoopPos++;
+                if (charArray[endLoopPos].Equals(Constants.EndLoop)) EndLoopCount++;
+                if (charArray[endLoopPos].Equals(Constants.BeginLoop)) BeginLoopCount++;
+            }
+            while(true)
+            {
+                for(int i = pos + 1; i < endLoopPos; i++)
+                {
+                    i = ProcessCommand(charArray[i], line, i);
+                }
+                if (MainArray.GetValue() == 0) break;
+            }
+            return endLoopPos;
         }
     }
 }
